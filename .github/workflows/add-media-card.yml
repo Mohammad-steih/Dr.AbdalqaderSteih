@@ -1,80 +1,62 @@
-# temporary updater
 name: Add media card
 
-on:
-  push:
-    branches: [main]
+on: push
 
 permissions:
   contents: write
 
 jobs:
-  update-media-card:
+  add-item:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Insert media card
-        shell: python
+      - name: Add cards
         run: |
+          python3 - <<'PY'
           from pathlib import Path
           import re
 
           cards = {
-              "index.html": '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
-          <img src="assets/abd1.jpeg" loading="lazy" alt="كيف أثر القانون العثماني على ملكية الأراضي في فلسطين؟">
-          <div class="timeline-content">
-            <h3>كيف أثر القانون العثماني على ملكية الأراضي في فلسطين؟</h3>
-            <p>عن ذلك يحدثنا المختص في التاريخ العثماني د. عبد القادر سطيح من خلال عدة محاور مرتبطة بالماضي والحاضر والمستقبل</p>
-          </div>
-        </a>
-
-''',
-              "en/index.html": '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
-          <img src="../assets/abd1.jpeg" loading="lazy" alt="How Did Ottoman Law Affect Land Ownership in Palestine?">
-          <div class="timeline-content">
-            <h3>How Did Ottoman Law Affect Land Ownership in Palestine?</h3>
-            <p>In this interview, Ottoman history specialist Dr. Abdalqader Steih discusses how Ottoman law affected land ownership in Palestine through several themes connected to the past, present, and future.</p>
-          </div>
-        </a>
-
-''',
-              "tr/index.html": '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
-          <img src="../assets/abd1.jpeg" loading="lazy" alt="Osmanlı Hukuku Filistin'de Toprak Mülkiyetini Nasıl Etkiledi?">
-          <div class="timeline-content">
-            <h3>Osmanlı Hukuku Filistin'de Toprak Mülkiyetini Nasıl Etkiledi?</h3>
-            <p>Osmanlı tarihi uzmanı Dr. Abdülkadir Steih, Osmanlı hukukunun Filistin'deki toprak mülkiyetini nasıl etkilediğini geçmiş, bugün ve gelecek ile bağlantılı çeşitli başlıklar üzerinden anlatıyor.</p>
-          </div>
-        </a>
-
-'''
-          }
+          'index.html': '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
+            <img src="assets/abd1.jpeg" loading="lazy" alt="كيف أثر القانون العثماني على ملكية الأراضي في فلسطين؟">
+            <div class="timeline-content">
+              <h3>كيف أثر القانون العثماني على ملكية الأراضي في فلسطين؟</h3>
+              <p>عن ذلك يحدثنا المختص في التاريخ العثماني د. عبد القادر سطيح من خلال عدة محاور مرتبطة بالماضي والحاضر والمستقبل</p>
+            </div>
+          </a>\n\n''',
+          'en/index.html': '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
+            <img src="../assets/abd1.jpeg" loading="lazy" alt="How Did Ottoman Law Affect Land Ownership in Palestine?">
+            <div class="timeline-content">
+              <h3>How Did Ottoman Law Affect Land Ownership in Palestine?</h3>
+              <p>In this interview, Ottoman history specialist Dr. Abdalqader Steih discusses how Ottoman law affected land ownership in Palestine through several themes connected to the past, present, and future.</p>
+            </div>
+          </a>\n\n''',
+          'tr/index.html': '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
+            <img src="../assets/abd1.jpeg" loading="lazy" alt="Osmanlı Hukuku Filistin'de Toprak Mülkiyetini Nasıl Etkiledi?">
+            <div class="timeline-content">
+              <h3>Osmanlı Hukuku Filistin'de Toprak Mülkiyetini Nasıl Etkiledi?</h3>
+              <p>Osmanlı tarihi uzmanı Dr. Abdülkadir Steih, Osmanlı hukukunun Filistin'deki toprak mülkiyetini nasıl etkilediğini geçmiş, bugün ve gelecek ile bağlantılı çeşitli başlıklar üzerinden anlatıyor.</p>
+            </div>
+          </a>\n\n'''}
 
           marker = re.compile(r'(<section\s+id=["\']participations["\'][\s\S]*?<div\s+class=["\']timeline-track["\']>\s*)', re.I)
-
-          for filename, card in cards.items():
-              path = Path(filename)
-              text = path.read_text(encoding="utf-8")
-              if "https://www.youtube.com/watch?v=xia8qBM3Avs" in text:
+          for path, card in cards.items():
+              p = Path(path)
+              s = p.read_text(encoding='utf-8')
+              if 'https://www.youtube.com/watch?v=xia8qBM3Avs' in s:
                   continue
-              updated, count = marker.subn(lambda m: m.group(1) + "\n" + card, text, count=1)
+              updated, count = marker.subn(lambda m: m.group(1) + '\n' + card, s, count=1)
               if count != 1:
-                  raise SystemExit(f"Could not locate participations timeline in {filename}")
-              path.write_text(updated, encoding="utf-8")
-
-      - name: Commit changes and remove temporary workflow
-        shell: bash
+                  raise SystemExit(f'Could not locate participations section in {path}')
+              p.write_text(updated, encoding='utf-8')
+          PY
+      - name: Commit and remove workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           rm -f .github/workflows/add-media-card.yml
           git add index.html en/index.html tr/index.html .github/workflows/add-media-card.yml
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-          git commit -m "feat: add Ottoman land ownership media card"
+          git commit -m "feat: add Ottoman land ownership media card" || exit 0
           git push origin HEAD:main
