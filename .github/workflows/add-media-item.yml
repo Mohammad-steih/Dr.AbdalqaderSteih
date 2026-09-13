@@ -15,12 +15,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Add item and image
         env:
-          IMG_B64: REPLACE_IMAGE_B64
+          IMG_BLOB_SHA: 1a8e6a5f0061abd356cecdaf4942f03111ed6953
         run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$IMG_BLOB_SHA" --jq .content | tr -d '\n' | base64 -d > assets/abd1.jpeg
           python3 - <<'PY'
-          import base64, pathlib, re
-          img = base64.b64decode('''${IMG_B64}''')
-          pathlib.Path('assets/abd1.jpeg').write_bytes(img)
+          import pathlib
 
           cards = {
             'ar/index.html': '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
@@ -45,20 +44,21 @@ jobs:
           </div>
         </a>\n\n'''
           }
+          marker = '<div class="timeline-track">\n'
           for path, card in cards.items():
               p = pathlib.Path(path)
               s = p.read_text(encoding='utf-8')
-              marker = '<div class="timeline-track">\n'
               if card.strip() not in s:
                   if marker not in s:
                       raise SystemExit(f'marker not found: {path}')
                   s = s.replace(marker, marker + '\n' + card, 1)
                   p.write_text(s, encoding='utf-8')
 
-          wf = pathlib.Path('.github/workflows/add-media-item.yml')
-          wf.unlink()
+          pathlib.Path('.github/workflows/add-media-item.yml').unlink()
           PY
       - name: Commit changes
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
