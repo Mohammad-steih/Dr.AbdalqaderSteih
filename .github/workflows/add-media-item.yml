@@ -1,0 +1,67 @@
+name: Add media appearance item
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-media-item.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  add-item:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add item and image
+        env:
+          IMG_B64: REPLACE_IMAGE_B64
+        run: |
+          python3 - <<'PY'
+          import base64, pathlib, re
+          img = base64.b64decode('''${IMG_B64}''')
+          pathlib.Path('assets/abd1.jpeg').write_bytes(img)
+
+          cards = {
+            'ar/index.html': '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
+          <img src="assets/abd1.jpeg" loading="lazy" alt="كيف أثر القانون العثماني على ملكية الأراضي في فلسطين؟">
+          <div class="timeline-content">
+            <h3>كيف أثر القانون العثماني على ملكية الأراضي في فلسطين؟</h3>
+            <p>كيف أثر القانون العثماني على ملكية الأراضي في فلسطين؟ عن ذلك يحدثنا المختص في التاريخ العثماني د. عبد القادر سطيح من خلال عدة محاور مرتبطة بالماضي والحاضر والمستقبل</p>
+          </div>
+        </a>\n\n''',
+            'en/index.html': '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
+          <img src="assets/abd1.jpeg" loading="lazy" alt="How Did Ottoman Law Affect Land Ownership in Palestine?">
+          <div class="timeline-content">
+            <h3>How Did Ottoman Law Affect Land Ownership in Palestine?</h3>
+            <p>How did Ottoman law affect land ownership in Palestine? Dr. Abdalqader Steih, a specialist in Ottoman history, discusses this through several themes connected to the past, present, and future.</p>
+          </div>
+        </a>\n\n''',
+            'tr/index.html': '''        <a href="https://www.youtube.com/watch?v=xia8qBM3Avs" target="_blank" rel="noopener noreferrer" class="timeline-card">
+          <img src="assets/abd1.jpeg" loading="lazy" alt="Osmanlı Hukuku Filistin'de Arazi Mülkiyetini Nasıl Etkiledi?">
+          <div class="timeline-content">
+            <h3>Osmanlı Hukuku Filistin'de Arazi Mülkiyetini Nasıl Etkiledi?</h3>
+            <p>Osmanlı hukuku Filistin'de arazi mülkiyetini nasıl etkiledi? Osmanlı tarihi uzmanı Dr. Abdalqader Steih, geçmiş, bugün ve gelecekle bağlantılı çeşitli başlıklar üzerinden bu konuyu ele alıyor.</p>
+          </div>
+        </a>\n\n'''
+          }
+          for path, card in cards.items():
+              p = pathlib.Path(path)
+              s = p.read_text(encoding='utf-8')
+              marker = '<div class="timeline-track">\n'
+              if card.strip() not in s:
+                  if marker not in s:
+                      raise SystemExit(f'marker not found: {path}')
+                  s = s.replace(marker, marker + '\n' + card, 1)
+                  p.write_text(s, encoding='utf-8')
+
+          wf = pathlib.Path('.github/workflows/add-media-item.yml')
+          wf.unlink()
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/abd1.jpeg ar/index.html en/index.html tr/index.html .github/workflows/add-media-item.yml
+          git commit -m "feat: add new media appearance item" || exit 0
+          git push
